@@ -1,32 +1,60 @@
-import React, { useReducer } from "react";
+import React, { useEffect, useReducer } from "react";
+import { useForm } from "../../hooks/useForm";
 import "./styles.css";
 import { todoReducer } from "./todoReducer";
 
-const initialState = [
-  { id: new Date().getTime(), desc: "Aprender React", done: false },
-];
+const init = () => {
+  return JSON.parse(localStorage.getItem("todos")) || [];
+};
 
 export const TodoApp = () => {
-  const [todos, dispatch] = useReducer(todoReducer, initialState);
-  console.log(todos);
+  const [todos, dispatch] = useReducer(todoReducer, [], init);
+
+  const [{ description }, handleInputChange, reset] = useForm({
+    description: "",
+  });
+
+  useEffect(() => {
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [todos]);
+
+  const handleDelete = (todoId) => {
+    console.log(todoId);
+
+    const action = {
+      type: "delete",
+      payload: todoId,
+    };
+
+    dispatch(action);
+  };
+
+  const handleToggle = (todoId) => {
+    dispatch({type: 'toggle', payload: todoId})
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (description.trim().length <= 1) {
+      return;
+    }
+
     console.log("Nueva yatea");
 
     const newTodo = {
       id: new Date().getTime(),
-      desc: "Nueva tarea",
+      desc: description,
       done: false,
     };
 
     const action = {
-      type: 'add',
-      payload: newTodo
-    }
+      type: "add",
+      payload: newTodo,
+    };
 
     dispatch(action);
-
+    reset();
   };
 
   return (
@@ -39,10 +67,15 @@ export const TodoApp = () => {
           <ul className="list-group list-group-flush">
             {todos.map((todo, i) => (
               <li key={todo.id} className="list-group-item">
-                <p className="text-center">
+                <p className={`${todo.done && 'complete'}`} onClick={() => handleToggle(todo.id)}>
                   {i + 1}. {todo.desc}
                 </p>
-                <button className="btn btn-danger">Borrar</button>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => handleDelete(todo.id)}
+                >
+                  Borrar
+                </button>
               </li>
             ))}
           </ul>
@@ -56,7 +89,9 @@ export const TodoApp = () => {
               type="text"
               name="description"
               placeholder="Aprender..."
-              autoComplete="of"
+              autoComplete="off"
+              onChange={handleInputChange}
+              value={description}
             />
             <button type="submit" className="btn btn-outline-primary mt-1 ">
               Agregar
